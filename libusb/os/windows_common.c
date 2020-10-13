@@ -552,8 +552,6 @@ static int windows_set_option(struct libusb_context *ctx, enum libusb_option opt
 {
 	struct windows_context_priv *priv = _context_priv(ctx);
 
-	UNUSED(ap);
-
 	switch (option) {
 	case LIBUSB_OPTION_USE_USBDK:
 		if (usbdk_available) {
@@ -565,6 +563,9 @@ static int windows_set_option(struct libusb_context *ctx, enum libusb_option opt
 		}
 		return LIBUSB_SUCCESS;
 	default:
+		if (priv->backend->set_option) {
+			return priv->backend->set_option(ctx, option, ap);
+		}
 		return LIBUSB_ERROR_NOT_SUPPORTED;
 	}
 

@@ -333,6 +333,8 @@ struct windows_backend {
 	int (*get_transfer_fd)(struct usbi_transfer *itransfer);
 	void (*get_overlapped_result)(struct usbi_transfer *itransfer,
 		DWORD *io_result, DWORD *io_size);
+    int (*set_option)(struct libusb_context *ctx, enum libusb_option option,
+		va_list args);
 };
 
 struct windows_context_priv {

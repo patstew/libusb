@@ -842,4 +842,5 @@ const struct windows_backend usbdk_backend = {
 	usbdk_copy_transfer_data,
 	usbdk_get_transfer_fd,
 	usbdk_get_overlapped_result,
+	NULL /* usbdk_set_option */,
 };
