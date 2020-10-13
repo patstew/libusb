@@ -2107,7 +2107,24 @@ enum libusb_option {
 	 *
 	 * Only valid on Linux-based operating system, such as Android.
 	 */
-	LIBUSB_OPTION_WEAK_AUTHORITY = 2
+	LIBUSB_OPTION_WEAK_AUTHORITY = 2,
+
+	/** Set winusb RAW_IO mode on an endpoint
+	 *
+	 * Requires additional arguments of:
+	 * libusb_device_handle *dev_handle, unsigned char endpoint
+	 *
+	 * Your transfers must meet the requirements of RAW_IO on this endpoint, namely:
+	 * * The buffer length must be a multiple of the maximum endpoint packet size.
+	 * * The length must be less than or equal to the value of MAXIMUM_TRANSFER_SIZE
+	 * (see https://docs.microsoft.com/en-us/windows-hardware/drivers/usbcon/usb-bandwidth-allocation)
+	 *
+	 * This option should be set immediately after calling libusb_claim_interface(),
+	 * otherwise unspecified behavior may occur.
+	 *
+	 * Only valid on Windows with the winusb backend.
+	 */
+	LIBUSB_OPTION_WINUSB_RAW_IO
 };
 
 int LIBUSB_CALL libusb_set_option(libusb_context *ctx, enum libusb_option option, ...);
