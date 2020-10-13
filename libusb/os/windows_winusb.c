@@ -42,6 +42,8 @@
 		continue;			\
 	}
 
+static int interface_by_endpoint(struct winusb_device_priv *priv,
+	struct winusb_device_handle_priv *handle_priv, uint8_t endpoint_address);
 // WinUSB-like API prototypes
 static bool winusbx_init(struct libusb_context *ctx);
 static void winusbx_exit(void);
@@ -2071,6 +2073,51 @@ static enum libusb_transfer_status winusb_copy_transfer_data(struct usbi_transfe
 	return priv->apib->copy_transfer_data(SUB_API_NOTSET, itransfer, length);
 }
 
+static int winusb_set_option(struct libusb_context *ctx, enum libusb_option option, va_list ap)
+{
+	struct libusb_device_handle *dev_handle;
+	unsigned char endpoint;
+	struct winusb_device_handle_priv *handle_priv;
+	struct winusb_device_priv *priv;
+	UCHAR policy = true;
+	int current_interface;
+	HANDLE winusb_handle;
+	int sub_api = SUB_API_NOTSET;
+
+	switch (option) {
+	case LIBUSB_OPTION_WINUSB_RAW_IO:
+		dev_handle = va_arg(ap, struct libusb_device_handle *);
+		endpoint = va_arg(ap, unsigned char);
+		handle_priv = get_winusb_device_handle_priv(dev_handle);
+		priv = usbi_get_device_priv(dev_handle->dev);
+		
+		current_interface = interface_by_endpoint(priv, handle_priv, endpoint);
+		if (current_interface < 0) {
+			usbi_err(ctx, "unable to match endpoint to an open interface for RAW_IO");
+			return LIBUSB_ERROR_NOT_FOUND;
+		}
+
+		if (priv->usb_interface[current_interface].apib->id != USB_API_WINUSBX) {
+			usbi_err(ctx, "interface is not winusb when setting RAW_IO");
+			return LIBUSB_ERROR_ACCESS;
+		}
+		
+		winusb_handle = handle_priv->interface_handle[current_interface].api_handle;
+
+		CHECK_WINUSBX_AVAILABLE(sub_api);
+
+		if (!WinUSBX[sub_api].SetPipePolicy(winusb_handle, endpoint,
+			RAW_IO, sizeof(UCHAR), &policy)) {
+			usbi_err(ctx, "failed to enable RAW_IO for endpoint %02X", endpoint);
+			return LIBUSB_ERROR_ACCESS;
+		}
+
+		return LIBUSB_SUCCESS;
+	default:
+		return LIBUSB_ERROR_NOT_SUPPORTED;
+	}
+}
+
 // NB: MSVC6 does not support named initializers.
 const struct windows_backend winusb_backend = {
 	winusb_init,
@@ -2093,6 +2140,7 @@ const struct windows_backend winusb_backend = {
 	winusb_cancel_transfer,
 	winusb_clear_transfer_priv,
 	winusb_copy_transfer_data,
+	winusb_set_option,
 };
 
 /*
